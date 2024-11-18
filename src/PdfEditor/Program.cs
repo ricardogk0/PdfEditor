@@ -11,11 +11,20 @@ class Program
 
     static void Main(string[] args)
     {  
-        string nomeConstrutora = "NovaConstrutora";
-        string adquirentes = "Nome dos Adquirentes";
-        string numeroApto = "101";
-        string torre = "A";
-        string nomeEmpreendimento = "Empreendimento X";
+        Console.WriteLine("Digite a Construtora: ");
+        string nomeConstrutora = Console.ReadLine();
+
+        Console.WriteLine("Digite o Adquirente: ");
+        string adquirentes = Console.ReadLine();
+
+        Console.WriteLine("Digite o Número do Apartamento: ");
+        string numeroApto = Console.ReadLine();
+
+        Console.WriteLine("Digite a Torre: ");
+        string torre = Console.ReadLine();
+
+        Console.WriteLine("Digite o Nome do Empreendimento: ");
+        string nomeEmpreendimento = Console.ReadLine();
 
         var textReplacements = new Dictionary<string, string>
         {
@@ -39,6 +48,7 @@ class Program
                 if (posicaoPalavra != null)
                 {
                     //RemoverTexto(page, posicaoPalavra, texto, pdfDoc);
+                    RemoverPalavra(page, texto, pdfDoc);
                     AlterarPalavras(page, font, posicaoPalavra, textReplacements[texto], pdfDoc);
                 }
                 else
@@ -74,22 +84,39 @@ class Program
         var canvas = new PdfCanvas(page.NewContentStreamAfter(), page.GetResources(), pdfDoc);
         canvas.BeginText()
               .SetFontAndSize(font, 12)
+              .SetFillColorRgb(0, 0, 0)
               .MoveText((float)posicao.Item1, (float)posicao.Item2)
               .ShowText(textNew)
               .EndText();
     }
 
-    static void RemoverTexto(iText.Kernel.Pdf.PdfPage page, Tuple<double, double> posicao, string texto, iText.Kernel.Pdf.PdfDocument pdfDoc)
+    static void RemoverPalavra(iText.Kernel.Pdf.PdfPage page, string palavraAlvo, iText.Kernel.Pdf.PdfDocument pdfDoc)
     {
-        float fontSize = 12f; 
+        using (var document = UglyToad.PdfPig.PdfDocument.Open(pdfPath))
+        {
+            var primeiraPagina = document.GetPage(1);
 
-        var larguraTexto = texto.Length * fontSize; 
-        var alturaTexto = fontSize; 
+            foreach (var word in primeiraPagina.GetWords())
+            {
+                string textoLimpado = word.Text.TrimEnd(',', '.', ';', ':', '!', '?');
 
-        var canvas = new PdfCanvas(page.NewContentStreamAfter(), page.GetResources(), pdfDoc);
+                if (textoLimpado.Equals(palavraAlvo, StringComparison.OrdinalIgnoreCase))
+                {
+                    double x = word.BoundingBox.Left;
+                    double y = word.BoundingBox.Bottom;
+                    double largura = word.BoundingBox.Width;
+                    double altura = word.BoundingBox.Height;
 
-        canvas.SetFillColorRgb(255, 255, 255);
-        canvas.Rectangle((float)posicao.Item1, (float)posicao.Item2, larguraTexto, alturaTexto);
-        canvas.Fill();
+                    var canvas = new PdfCanvas(page.NewContentStreamAfter(), page.GetResources(), pdfDoc);
+                    canvas.SetFillColorRgb(255, 255, 255);
+                    canvas.Rectangle((float)x, (float)y - 3, (float)largura, (float)altura + 3);
+                    canvas.Fill();
+
+                    Console.WriteLine($"Palavra '{palavraAlvo}' removida na posição ({x}, {y}).");
+                }
+            }
+        }
+        
     }
+
 }
